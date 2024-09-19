@@ -1,0 +1,4 @@
+# fommat
+.vscode/
+.prettierrc
+.env

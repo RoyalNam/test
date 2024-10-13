@@ -15,7 +15,10 @@ dotenv.config();
 mongoose
     .connect(process.env.MONGODB_URL)
     .then(() => console.log('connect to database'))
-    .catch((err) => console.log(`Error: ${err}`));
+    .catch((err) => {
+        console.log(`Error: ${err}`);
+        process.exit(1);
+    });
 
 app.use(
     cors({
@@ -32,11 +35,13 @@ app.use(express.json());
 app.use(cookieParser('helloworld'));
 app.use(
     session({
-        secret: 'hieu is the dev',
+        secret: process.env.SESSION_SECRET || 'fallbackSecret',
         saveUninitialized: true,
         resave: false,
         cookie: {
             maxAge: 60000 * 60,
+            secure: process.env.NODE_ENV === 'production',
+            httpOnly: true,
         },
         store: MongoStore.create({
             client: mongoose.connection.getClient(),
@@ -49,20 +54,20 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
 app.use(passport.initialize());
 app.use(passport.session());
+
 app.get('/', (request, response) => {
     console.log(request.session);
     request.session.visited = true;
-
     response.status(201).send({ msg: 'Hello World' });
 });
 
 app.use(router);
 
+if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+}
 const port = process.env.PORT || 5000;
 
-const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-const host = 'localhost';
-
 server.listen(port, () => {
-    console.log(`Server running on ${protocol}://${host}:${port}`);
+    console.log(`Server running on ${port}`);
 });

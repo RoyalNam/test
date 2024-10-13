@@ -1,8 +1,5 @@
+import { Conversation, Message, Notification, UserActivity } from '../mongoose/schemas/index.js';
 import { getReceiverSocketId, io } from '../socket/socket.mjs';
-import Message from '../mongoose/schemas/message.mjs';
-import UserActivity from '../mongoose/schemas/userActivity.mjs';
-import Conversation from '../mongoose/schemas/conversation.mjs';
-import Notification from '../mongoose/schemas/notification.mjs';
 
 class MessageController {
     static async getMessages(req, res) {

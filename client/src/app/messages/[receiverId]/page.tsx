@@ -65,6 +65,7 @@ export default function Messages() {
                     receiverId: receiverId as string,
                     message: inputRef.current.innerText,
                 });
+
                 if (sendMsg) {
                     setMessages((prev) => [sendMsg.message, ...prev]);
                     inputRef.current.innerText = '';

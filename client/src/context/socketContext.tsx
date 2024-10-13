@@ -22,6 +22,7 @@ export const SocketContextProvider = ({ children }: { children: React.ReactNode 
                 query: {
                     userId: authUser._id,
                 },
+                withCredentials: true,
             });
             setSocket(newSocket);
 

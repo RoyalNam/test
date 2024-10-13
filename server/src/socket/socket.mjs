@@ -12,7 +12,7 @@ const io = new Server(server, {
     cors: {
         origin: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
-        // credentials: true,
+        credentials: true,
     },
 });
 

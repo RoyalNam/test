@@ -1,12 +1,12 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Oval } from 'react-loader-spinner';
+
 import { useAuthContextProvider } from '@/context/authUserContext';
 import Modal from '@/components/Modal';
-import userApi from '@/api/modules/user.api';
-import otherApi from '@/api/modules/other.api';
 import MainLayout from '@/app/MainLayout';
+import { otherApi, userApi } from '@/api/modules';
 
 const EditProfile = () => {
     const router = useRouter();

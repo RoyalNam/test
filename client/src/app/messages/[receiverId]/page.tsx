@@ -2,14 +2,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { BsArrowUpSquareFill, BsCameraVideo, BsInfoCircle, BsTelephone } from 'react-icons/bs';
+
 import { Message, MinimalUser } from '@/types';
 import { timeAgoFromPast } from '@/utils';
 import { useAuthContextProvider } from '@/context/authUserContext';
 import { useSocketContext } from '@/context/socketContext';
 import { formatDateTime } from '@/utils';
 import { useChatUsersContextProvider } from '@/context/chatUsersContext';
-import userApi from '@/api/modules/user.api';
-import messageApi from '@/api/modules/message.api';
+import { messageApi, userApi } from '@/api/modules';
 
 export default function Messages() {
     const router = useRouter();
@@ -27,7 +27,6 @@ export default function Messages() {
         const fetchData = async () => {
             try {
                 const user = await userApi.getBasicInfoById(receiverId as string);
-                console.log('user', user);
 
                 setUserToChat(user);
                 const messagesResp = await messageApi.getMessages({
@@ -107,7 +106,7 @@ export default function Messages() {
 
     const renderText = (message: Message) => (
         <div key={message._id} className="flex flex-col gap-1">
-            <span className="mx-auto text-xs">{formatDateTime(message.updatedAt)}</span>
+            <span className="mx-auto text-xs">{formatDateTime(new Date(message.updatedAt))}</span>
             <pre
                 className={`${
                     message.senderId == authUser?._id
@@ -140,19 +139,19 @@ export default function Messages() {
 
                         <div className="leading-4 ml-2 mt-2">
                             <h5 className="font-semibold">{userToChat.name}</h5>
-                            <span className="text-sm font-extralight line-clamp-1">
-                                {usersActivity.length > 0 &&
-                                    userToChat &&
-                                    (onlineUsers.includes(userToChat._id)
-                                        ? 'Active Now'
-                                        : usersActivity.find((user) => user && user.user_id === userToChat._id)
-                                        ? timeAgoFromPast(
-                                              new Date(
-                                                  usersActivity.find((user) => user.user_id === userToChat._id)
-                                                      ?.last_active as string,
-                                              ),
-                                          )
-                                        : 'Not recently active')}
+                            <span>
+                                {onlineUsers.includes(userToChat._id)
+                                    ? 'Active Now'
+                                    : (function () {
+                                          const userActivity = usersActivity.find(
+                                              (user) => user && user.user_id === userToChat._id,
+                                          );
+                                          if (userActivity && userActivity.last_active) {
+                                              const lastActiveDate = new Date(userActivity.last_active);
+                                              return timeAgoFromPast(lastActiveDate);
+                                          }
+                                          return 'Not recently active';
+                                      })()}
                             </span>
                         </div>
                     </div>

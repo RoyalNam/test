@@ -1,6 +1,5 @@
-import { User } from '../mongoose/schemas/user.mjs';
 import { getReceiverSocketId, io } from '../socket/socket.mjs';
-import Notification from '../mongoose/schemas/notification.mjs';
+import { Notification, Post, User } from '../mongoose/schemas/index.js';
 
 class PostController {
     static async createPost(req, res) {
@@ -8,20 +7,20 @@ class PostController {
             const { image_url, caption } = req.body;
             const currentUser = req.user;
 
-            const newPost = {
+            const newPost = new Post({
                 image_url,
                 caption,
-                user: currentUser._id,
-            };
+                user_id: currentUser._id,
+            });
 
-            currentUser.posts.unshift(newPost);
+            const savedPost = await newPost.save();
+            currentUser.posts.push(savedPost._id);
 
             await currentUser.save();
 
-            res.status(201).json({ message: 'Post created successfully', post: currentUser.posts[0] });
+            res.status(201).json(savedPost);
         } catch (error) {
-            console.error('Error creating post:', error);
-            res.status(500).json({ message: 'Internal server error' });
+            res.status(500).json({ error: 'Error creating post' });
         }
     }
 
@@ -30,19 +29,19 @@ class PostController {
             const postId = req.params.postId;
             const { image_url, caption } = req.body;
 
-            const currentUser = req.user;
-            const post = currentUser.posts.find((post) => post._id == postId);
+            const post = await Post.findById(postId);
 
-            if (!post) {
-                return res.status(404).json({ message: 'Post not found' });
+            if (!post || post.user_id.toString() !== req.user._id.toString()) {
+                return res.status(404).json({ message: 'Post not found or unauthorized' });
             }
 
             post.image_url = image_url || post.image_url;
             post.caption = caption || post.caption;
+            post.updatedAt = new Date();
 
-            await currentUser.save();
+            const updatedPost = await post.save();
 
-            res.status(200).json({ message: 'Post updated successfully', post });
+            res.status(200).json({ message: 'Post updated successfully', post: updatedPost });
         } catch (error) {
             console.error('Error updating post:', error);
             res.status(500).json({ message: 'Internal server error' });
@@ -54,15 +53,16 @@ class PostController {
             const postId = req.params.postId;
 
             const currentUser = req.user;
-            const postIndex = currentUser.posts.findIndex((post) => post._id == postId);
+            const post = await Post.findById(postId);
 
-            if (postIndex === -1) {
-                return res.status(404).json({ message: 'Post not found' });
+            if (!post || post.user_id.toString() !== currentUser._id.toString()) {
+                return res.status(404).json({ message: 'Post not found or unauthorized' });
             }
 
-            currentUser.posts.splice(postIndex, 1);
-
+            currentUser.posts = currentUser.posts.filter((p) => p.toString() !== postId);
             await currentUser.save();
+
+            await Post.deleteOne({ _id: postId });
 
             res.status(200).json({ message: 'Post deleted successfully' });
         } catch (error) {
@@ -71,18 +71,29 @@ class PostController {
         }
     }
 
+    static async GetPostById(req, res) {
+        try {
+            const postId = req.params.postId;
+
+            const post = await Post.findById(postId);
+
+            if (!post) {
+                return res.status(404).json({ message: 'Post not found' });
+            }
+
+            res.status(200).json(post);
+        } catch (error) {
+            console.error('Error retrieving post:', error);
+            res.status(500).json({ message: 'Internal server error' });
+        }
+    }
+
     static async getPostByUser(req, res) {
         try {
             const { userId, postId } = req.params;
 
-            const user = await User.findById(userId);
-            if (!user) {
-                return res.status(404).json({ message: 'User not found' });
-            }
-
-            const post = user.posts.find((post) => post._id.toString() === postId);
-
-            if (!post) {
+            const post = await Post.findById(postId).populate('user', 'name avatar');
+            if (!post || post.user_id._id.toString() !== userId) {
                 return res.status(404).json({ message: 'Post not found' });
             }
 
@@ -95,61 +106,32 @@ class PostController {
 
     static async getRandomPosts(req, res) {
         try {
-            let numberOfPostsToShow = 15;
+            const numberOfPostsToShow = req.query.previousPostIds ? req.query.numberOfPostsToShow : 15;
+            const previousPostIds = req.query.previousPostIds ? req.query.previousPostIds.split(',') : [];
 
-            if (req.body && req.body.numberOfPostsToShow) {
-                numberOfPostsToShow = req.body.numberOfPostsToShow;
-            }
+            const totalPosts = await Post.countDocuments();
 
-            req.previousPostIds = req.previousPostIds || [];
-
-            if (!req.totalPosts) {
-                req.totalPosts = await User.aggregate([
-                    { $project: { totalPosts: { $size: '$posts' } } },
-                    { $group: { _id: null, total: { $sum: '$totalPosts' } } },
-                ]);
-            }
-            if (req.previousPostIds.length >= req.totalPosts.total) {
+            if (previousPostIds.length >= totalPosts) {
                 return res.status(400).json({ message: 'All posts already retrieved' });
             }
-
-            const posts = await User.aggregate([
-                { $unwind: '$posts' },
-                { $match: { 'posts._id': { $nin: req.previousPostIds } } },
+            const randomPosts = await Post.aggregate([
+                { $match: { _id: { $nin: previousPostIds } } },
                 { $sample: { size: numberOfPostsToShow } },
-                {
-                    $project: {
-                        _id: '$posts._id',
-                        author: {
-                            _id: '$_id',
-                            name: '$name',
-                            avatar: '$avatar',
-                        },
-                        post: '$posts',
-                    },
-                },
             ]);
 
-            const newPostIds = posts.map((post) => post.post._id);
-            req.previousPostIds = [...req.previousPostIds, ...newPostIds];
-
-            res.status(200).json({ message: 'Random posts retrieved successfully', posts });
+            return res.status(200).json(randomPosts);
         } catch (error) {
-            console.error('Error retrieving random posts:', error);
-            res.status(500).json({ message: 'Internal server error' });
+            console.error(error);
+            return res.status(500).json({ message: 'Internal server error' });
         }
     }
+
     static async likePost(req, res) {
         try {
-            const { userId, postId } = req.params;
+            const { postId } = req.params;
             const currentUser = req.user;
 
-            const user = await User.findById(userId);
-            if (!user) {
-                return res.status(404).json({ message: 'User not found' });
-            }
-
-            const post = user.posts.find((post) => post._id.toString() === postId);
+            const post = await Post.findById(postId);
             if (!post) {
                 return res.status(404).json({ message: 'Post not found' });
             }
@@ -158,61 +140,72 @@ class PostController {
 
             if (isLiked) {
                 post.likes = post.likes.filter((like) => like.toString() !== currentUser._id.toString());
-
-                await Notification.deleteOne({ user: userId, sender: currentUser._id, action: 'liked' });
+                await Notification.deleteOne({
+                    user_id: post.user_id,
+                    sender: currentUser._id,
+                    action: 'liked',
+                });
+                await post.save();
+                return res.status(200).json({
+                    message: 'Post has not been liked',
+                    isLiked: false,
+                });
             } else {
                 post.likes.push(currentUser._id);
 
                 const newNotification = new Notification({
-                    user: userId,
+                    user_id: post.user_id,
                     action: 'liked',
                     content: `${currentUser.name} liked your post`,
                     sender: currentUser._id,
                 });
                 await newNotification.save();
 
-                const ownerSocketId = getReceiverSocketId(userId);
+                const ownerSocketId = getReceiverSocketId(post.user_id);
                 if (ownerSocketId) {
                     io.to(ownerSocketId).emit('newNotification', newNotification);
                 }
+
+                await post.save();
+
+                return res.status(200).json({
+                    message: 'Post has been liked',
+                    isLiked: true,
+                });
             }
-
-            await user.save();
-
-            res.status(200).json({
-                message: !isLiked ? 'Post has been liked' : 'Post has not been liked',
-                isLiked: !isLiked,
-            });
         } catch (error) {
             console.error('Error updating post:', error);
-            res.status(500).json({ message: 'Internal server error' });
+            return res.status(500).json({ message: 'Internal server error' });
         }
     }
 
     static async savePost(req, res) {
         try {
-            const { userId, postId } = req.body;
+            const { postId } = req.body;
             const currentUser = req.user;
 
-            const index = currentUser.save_post.findIndex(
-                (item) => item.user_id.toString() === userId && item.post_id.toString() === postId,
-            );
-            if (index !== -1) {
-                currentUser.save_post.splice(index, 1);
+            if (!Array.isArray(currentUser.save_post)) {
+                currentUser.save_post = [];
+            }
+
+            const alreadySavedIndex = currentUser.save_post.findIndex((item) => item.toString() === postId);
+
+            if (alreadySavedIndex !== -1) {
+                currentUser.save_post.splice(alreadySavedIndex, 1);
                 await currentUser.save();
-                res.status(200).json({ message: 'Post removed from saved list', postId: postId, saved: false });
+                return res.status(200).json({ message: 'Post removed from saved list', postId, saved: false });
             } else {
-                const newPostToSave = {
-                    user_id: userId,
-                    post_id: postId,
-                };
-                currentUser.save_post.push(newPostToSave);
+                currentUser.save_post.push(postId);
                 await currentUser.save();
-                res.status(200).json({ message: 'Post saved successfully', post: newPostToSave, saved: true });
+                return res.status(200).json({
+                    message: 'Post saved successfully',
+                    post: { user_id: currentUser._id, post_id: postId },
+                    saved: true,
+                });
             }
         } catch (error) {
             console.error('Error:', error);
-            res.status(500).json({ message: 'Internal server error' });
+            return res.status(500).json({ message: 'Internal server error' });
         }
     }
 }

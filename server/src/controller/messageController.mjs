@@ -83,7 +83,7 @@ class MessageController {
             await conversation.save();
 
             const newNotification = new Notification({
-                user: receiverId,
+                user_id: receiverId,
                 action: 'messaged',
                 content: `New message from ${req.user.name}`,
                 sender: senderId,

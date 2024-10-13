@@ -1,10 +1,9 @@
 'use client';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+
 import { MinimalUser, UserActivity } from '@/types';
 import { useAuthContextProvider } from './authUserContext';
-import userApi from '@/api/modules/user.api';
-import messageApi from '@/api/modules/message.api';
-import otherApi from '@/api/modules/other.api';
+import { messageApi, otherApi, userApi } from '@/api/modules';
 
 interface ChatUsersContextType {
     chatUsers: MinimalUser[];

@@ -13,16 +13,15 @@ import {
     BsThreeDots,
     BsX,
 } from 'react-icons/bs';
+
 import PostDetail from '@/components/post/PostDetail';
 import CreatePost from '@/components/post/CreatePost';
 import { useAuthContextProvider } from '@/context/authUserContext';
-import { MinimalUser, PostProps, User } from '@/types';
+import { MinimalUser, Post, User } from '@/types';
 import PostTile from '@/components/post/PostTile';
 import UserListModal from '@/components/UserListModal';
-import userApi from '@/api/modules/user.api';
-import postApi from '@/api/modules/post.api';
-import followApi from '@/api/modules/follow.api';
 import MainLayout from '@/app/MainLayout';
+import { followApi, postApi, userApi } from '@/api/modules';
 
 interface TabProps {
     icon: React.ReactNode;
@@ -37,10 +36,10 @@ const Profile = () => {
     const [tab, setTab] = useState('Posts');
     const [isShowCreatePost, setShowCreatePost] = useState(false);
     const [user, setUser] = useState<User | null>();
-    const [selectedPost, setSelectedPost] = useState<PostProps | null>(null);
+    const [selectedPost, setSelectedPost] = useState<Post | null>(null);
     const [loading, setLoading] = useState(true);
-    const [posts, setPosts] = useState<PostProps[]>([]);
-    const [savePosts, setSavePosts] = useState<PostProps[]>([]);
+    const [posts, setPosts] = useState<Post[]>([]);
+    const [savePosts, setSavePosts] = useState<Post[]>([]);
     const [usersFollowing, setUsersFollowing] = useState<MinimalUser[]>([]);
     const [usersFollower, setUsersFollower] = useState<MinimalUser[]>([]);
 
@@ -51,19 +50,16 @@ const Profile = () => {
                     authUser && userId === authUser._id
                         ? authUser
                         : ((await userApi.getUserById(userId as string)) as User);
+
                 if (fetchedUser) {
                     setUser(fetchedUser);
 
-                    const mappedPosts = fetchedUser.posts.map((post) => ({
-                        author: {
-                            _id: fetchedUser._id,
-                            name: fetchedUser.name,
-                            avatar: fetchedUser.avatar,
-                        },
-                        post,
-                    }));
+                    if (fetchedUser.posts.length > 0) {
+                        const postPromises = fetchedUser.posts.map((postId) => postApi.getPostById(postId));
+                        const posts = await Promise.all(postPromises);
 
-                    setPosts(mappedPosts);
+                        setPosts(posts);
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching user data:', error);
@@ -112,9 +108,8 @@ const Profile = () => {
             if (authUser) {
                 if (authUser.save_post.length > 0) {
                     const promises = authUser.save_post.map(async (item) => {
-                        const userData = await userApi.getBasicInfoById(item.user_id);
-                        const postData = await postApi.getPostById(item.user_id, item.post_id);
-                        return { author: userData, post: postData.post };
+                        const postData = await postApi.getPostById(item);
+                        return postData;
                     });
                     const savePostsData = await Promise.all(promises);
                     setSavePosts(savePostsData);
@@ -125,10 +120,10 @@ const Profile = () => {
         }
     };
 
-    const updatePost = async (post: PostProps) => {
+    const updatePost = async (post: Post) => {
         setPosts((prev) =>
             prev.map((item) => {
-                if (item.post._id === post.post._id) return post;
+                if (item._id === post._id) return post;
                 else return item;
             }),
         );
@@ -314,15 +309,15 @@ const Profile = () => {
                                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-1">
                                         {posts.map((item) => (
                                             <PostTile
-                                                key={item.post._id}
-                                                post={item.post}
+                                                key={item._id}
+                                                post={item}
                                                 setSelectedPost={() => setSelectedPost(item)}
                                             />
                                         ))}
                                     </div>
                                 </div>
                             ))}
-                        {tab == 'Tagged' &&
+                        {/* {tab == 'Tagged' &&
                             (savePosts.length === 0 ? (
                                 <div className="text-center mb-8">
                                     {renderEmptyInfoTab(
@@ -338,12 +333,13 @@ const Profile = () => {
                                             <PostTile
                                                 key={item.post._id}
                                                 post={item.post}
-                                                setSelectedPost={() => setSelectedPost(item)}
+                                                setSelectedPost={() => setSelectedPost(item.post)}
                                             />
                                         ))}
                                     </div>
                                 </div>
-                            ))}
+                                <div>hello</div>
+                            ))} */}
                         {tab == 'Saved' &&
                             (savePosts.length === 0 ? (
                                 <div className="text-center mb-8">
@@ -358,8 +354,8 @@ const Profile = () => {
                                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-1">
                                         {savePosts.map((item) => (
                                             <PostTile
-                                                key={item.post._id}
-                                                post={item.post}
+                                                key={item._id}
+                                                post={item}
                                                 setSelectedPost={() => setSelectedPost(item)}
                                             />
                                         ))}

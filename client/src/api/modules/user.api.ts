@@ -88,7 +88,6 @@ const userApi = {
         const resp = await publicClient.get(userEndpoint.suggested_user({ id }));
         return resp.data;
     },
-    // pri
     getNotifications: async (id: string) => {
         const resp = await publicClient.get(userEndpoint.notifications({ id }));
         return resp.data;

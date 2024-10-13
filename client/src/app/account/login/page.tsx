@@ -2,6 +2,7 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+
 import InputCus from '@/components/InputCus';
 import userApi, { userEndpoint } from '@/api/modules/user.api';
 import { useAuthContextProvider } from '@/context/authUserContext';
@@ -44,7 +45,6 @@ const Login = () => {
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const userData = await userApi.loginLocal(formData);
-        console.log('users', userData);
 
         if (userData) {
             updateAuthUser(userData.user);

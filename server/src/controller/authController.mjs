@@ -1,7 +1,7 @@
 import passport from 'passport';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
-import { User } from '../mongoose/schemas/user.mjs';
+import { User } from '../mongoose/schemas/index.js';
 import { comparePassword } from '../utils/helpers.mjs';
 
 dotenv.config();

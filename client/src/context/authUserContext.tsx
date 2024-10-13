@@ -1,8 +1,8 @@
 'use client';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+
 import { User } from '@/types';
-import userApi from '@/api/modules/user.api';
 
 interface AuthContextType {
     authUser: User | null;

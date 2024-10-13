@@ -4,7 +4,7 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth2';
 import { Strategy as FacebookStrategy } from 'passport-facebook';
 import { Strategy as LocalStrategy } from 'passport-local';
 import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
-import { User } from '../mongoose/schemas/user.mjs';
+import { User } from '../mongoose/schemas/index.js';
 dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET;

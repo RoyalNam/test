@@ -1,15 +1,16 @@
 'use client';
-import { useChatUsersContextProvider } from '@/context/chatUsersContext';
-import { BsPencilSquare, BsX } from 'react-icons/bs';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { BsPencilSquare, BsX } from 'react-icons/bs';
+
+import { useChatUsersContextProvider } from '@/context/chatUsersContext';
 import { useSocketContext } from '@/context/socketContext';
 import { formatNumber, timeAgoFromPast } from '@/utils';
 import Modal from '@/components/Modal';
 import { User } from '@/types';
-import userApi from '@/api/modules/user.api';
 import { useAuthContextProvider } from '@/context/authUserContext';
 import Navbar from '@/components/navbar';
+import { userApi } from '@/api/modules';
 
 export default function MessagesLayout({
     children,

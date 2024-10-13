@@ -2,17 +2,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BsArrowReturnRight, BsSend, BsX } from 'react-icons/bs';
+
 import Modal from '../Modal';
-import { Comment, MinimalUser, PostProps } from '@/types';
+import { Comment, MinimalUser, Post } from '@/types';
 import { timeAgoFromPast } from '@/utils';
 import PostItem from './PostItem';
-import userApi from '@/api/modules/user.api';
-import postApi from '@/api/modules/post.api';
 import { useAuthContextProvider } from '@/context/authUserContext';
+import { postApi, userApi } from '@/api/modules';
 
 export interface PostDetailProps {
-    postData: PostProps | null;
-    updatePost: (post: PostProps) => void;
+    postData: Post | null;
+    updatePost: (post: Post) => void;
     closePostDetail: () => void;
 }
 
@@ -20,27 +20,21 @@ const PostDetail: React.FC<PostDetailProps> = ({ postData, updatePost, closePost
     const { authUser } = useAuthContextProvider();
     const commentTxtRef = useRef<HTMLTextAreaElement | null>(null);
     const [isDiscard, setDiscard] = useState(false);
-    useEffect(() => {}, [authUser]);
-    useEffect(() => {}, [postData]);
+
+    useEffect(() => {}, [authUser, postData]);
 
     const handleCreateComment = async () => {
         if (authUser) {
             try {
                 if (postData && commentTxtRef.current && commentTxtRef.current.value.trim() != '') {
                     const comment = await postApi.createComment({
-                        postId: postData.post._id,
+                        postId: postData._id,
                         data: { comment_text: commentTxtRef.current?.value.toString(), userId: authUser._id },
                     });
 
                     if (comment) {
-                        const updatedComments = [comment.comment, ...postData.post.comments];
-
-                        const updatedPost = {
-                            ...postData.post,
-                            comments: updatedComments,
-                        };
-
-                        updatePost({ author: postData.author, post: updatedPost });
+                        const updatedComments = [comment.comment, ...postData!.comments];
+                        updatePost({ ...postData, comments: updatedComments });
                         commentTxtRef.current.value = '';
                     }
                 }
@@ -79,10 +73,10 @@ const PostDetail: React.FC<PostDetailProps> = ({ postData, updatePost, closePost
     const updateComments = (updatedComment: Comment, parentId: string) => {
         if (postData) {
             const updatedPost = {
-                ...postData.post,
-                comments: updateCommentsRecursively(postData.post.comments, updatedComment, parentId),
+                ...postData,
+                comments: updateCommentsRecursively(postData.comments, updatedComment, parentId),
             };
-            updatePost({ ...postData, post: updatedPost });
+            updatePost(updatedPost);
         }
     };
 
@@ -92,7 +86,7 @@ const PostDetail: React.FC<PostDetailProps> = ({ postData, updatePost, closePost
                 <div className="z-40 relative bg-white dark:bg-primary h-[calc(100vh-64px)] w-[calc(100vw-84px)] flex rounded-xl">
                     <div className="hidden md:flex flex-1 items-center border-r">
                         <img
-                            src={postData.post.image_url}
+                            src={postData.image_url}
                             alt=""
                             loading="lazy"
                             className="max-w-full max-h-full w-full h-auto object-cover"
@@ -102,19 +96,19 @@ const PostDetail: React.FC<PostDetailProps> = ({ postData, updatePost, closePost
                         <PostItem postData={postData} show={false} updatePost={updatePost} isShowImg={false} />
                         <div className="md:hidden flex items-center -mx-4">
                             <img
-                                src={postData.post.image_url}
+                                src={postData.image_url}
                                 alt=""
                                 loading="lazy"
                                 className="max-w-full max-h-full w-full h-auto object-cover"
                             />
                         </div>
-                        {postData.post.comments.length > 0 ? (
+                        {postData.comments.length > 0 ? (
                             <div className="border-b text-sm border-black/30 dark:border-white/20 py-4 my-3 flex-1 scroll_thin overflow-y-auto">
                                 <div className="flex flex-col ml-8">
-                                    {postData.post.comments.map((item) => (
+                                    {postData.comments.map((item) => (
                                         <RenderComment
                                             key={item._id}
-                                            postId={postData.post._id}
+                                            postId={postData._id}
                                             commentId={item._id}
                                             comment={item}
                                             updateComments={updateComments}
@@ -188,8 +182,8 @@ const RenderComment: React.FC<{
 
     useEffect(() => {
         const fetchData = async () => {
-            if (comment && comment.user) {
-                const userComment = await userApi.getBasicInfoById(comment.user);
+            if (comment && comment.user_id) {
+                const userComment = await userApi.getBasicInfoById(comment.user_id);
                 if (userComment) setUserComment(userComment);
             }
         };
@@ -273,7 +267,7 @@ const RenderItem: React.FC<{
                         <p className="font-light">{comment.comment_text}</p>
                     </div>
                     <div className="ml-2 text-xs flex gap-3">
-                        <span>{timeAgoFromPast(new Date(comment.comment_date))}</span>
+                        <span>{timeAgoFromPast(new Date(comment.updatedAt))}</span>
                         <button>like</button>
                         <button
                             onClick={() => {

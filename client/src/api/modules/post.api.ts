@@ -4,12 +4,19 @@ import publicClient from '../client/public.client';
 const postBaseUrl = '/posts';
 const postEndpoint = {
     create_post: postBaseUrl,
-    get_post: ({ userId, postId }: { userId: string; postId: string }) => `/${userId}/posts/${postId}`,
-    get_posts: ({ numberOfPostsToShow = 10 }: { numberOfPostsToShow?: number }) =>
-        `${postBaseUrl}?numberOfPostsToShow=${numberOfPostsToShow}`,
+    get_post: ({ postId }: { postId: string }) => `/posts/${postId}`,
+    get_posts: ({
+        numberOfPostsToShow,
+        previousPostIds,
+    }: {
+        numberOfPostsToShow?: number;
+        previousPostIds: string[];
+    }) => {
+        const previousIdsParam = previousPostIds.length ? `&previousPostIds=${previousPostIds.join(',')}` : '';
+        return `${postBaseUrl}?numberOfPostsToShow=${numberOfPostsToShow}${previousIdsParam}`;
+    },
     toggle_save_post: `${postBaseUrl}/save`,
-    toggle_like_post: ({ userId, postId }: { userId: string; postId: string }) =>
-        `${postEndpoint.get_post({ userId, postId })}/like`,
+    toggle_like_post: ({ postId }: { postId: string }) => `${postEndpoint.get_post({ postId })}/like`,
     create_comment: ({ postId }: { postId: string }) => `${postBaseUrl}/${postId}/comments`,
     reply_comment: ({ postId, commentId }: { postId: string; commentId: string }) =>
         `${postBaseUrl}/${postId}/comments/${commentId}/replies`,
@@ -20,20 +27,25 @@ const postApi = {
         const resp = await privateClient.post(postEndpoint.create_post, data);
         return resp.data;
     },
-    getPostById: async (userId: string, postId: string) => {
-        const resp = await publicClient.get(postEndpoint.get_post({ userId, postId }));
+    getPostById: async (postId: string) => {
+        const resp = await publicClient.get(postEndpoint.get_post({ postId }));
         return resp.data;
     },
-    getPosts: async (numberOfPostsToShow = 10) => {
-        const resp = await publicClient.get(postEndpoint.get_posts({ numberOfPostsToShow }));
+    getPosts: async (previousPostIds: string[] = [], numberOfPostsToShow = 10) => {
+        const resp = await publicClient.get(
+            postEndpoint.get_posts({
+                previousPostIds,
+                numberOfPostsToShow,
+            }),
+        );
         return resp.data;
     },
-    toggleSavePost: async ({ userId, postId }: { userId: string; postId: string }) => {
-        const resp = await privateClient.post(postEndpoint.toggle_save_post, { userId, postId });
+    toggleSavePost: async ({ postId }: { postId: string }) => {
+        const resp = await privateClient.post(postEndpoint.toggle_save_post, { postId });
         return resp.data;
     },
-    toggleLikePost: async ({ userId, postId }: { userId: string; postId: string }) => {
-        const resp = await privateClient.post(postEndpoint.toggle_like_post({ userId, postId }), {});
+    toggleLikePost: async ({ postId }: { postId: string }) => {
+        const resp = await privateClient.post(postEndpoint.toggle_like_post({ postId }));
         return resp.data;
     },
     createComment: async ({ postId, data }: { postId: string; data: any }) => {

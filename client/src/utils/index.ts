@@ -109,8 +109,7 @@ export const countComments = (comments: Comment[]) => {
     return count;
 };
 
-export function formatDateTime(dateTimeString: string) {
-    const dateTime = new Date(dateTimeString);
+export function formatDateTime(dateTime: Date) {
     const now = new Date();
 
     const diffTime = Math.abs(now.getTime() - dateTime.getTime());

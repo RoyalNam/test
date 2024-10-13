@@ -1,6 +1,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { BsX } from 'react-icons/bs';
+
 import Modal from './Modal';
 import { MinimalUser } from '@/types';
 

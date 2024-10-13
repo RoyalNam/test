@@ -1,6 +1,5 @@
-import { User } from '../mongoose/schemas/user.mjs';
+import { User, Notification } from '../mongoose/schemas/index.js';
 import { getReceiverSocketId, io } from '../socket/socket.mjs';
-import Notification from '../mongoose/schemas/notification.mjs';
 
 class FollowController {
     static async addFollower(req, res) {
@@ -71,7 +70,7 @@ class FollowController {
             await Promise.all([user.save(), followingUser.save()]);
 
             const newNotification = new Notification({
-                user: followingUser._id,
+                user_id: followingUser._id,
                 action: 'followed',
                 content: `${user.name} followed you`,
                 sender: user._id,

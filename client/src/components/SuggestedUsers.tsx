@@ -1,10 +1,10 @@
 'use client';
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+
 import { useAuthContextProvider } from '@/context/authUserContext';
 import { MinimalUser } from '@/types';
-import { useRouter } from 'next/navigation';
-import userApi from '@/api/modules/user.api';
-import followApi from '@/api/modules/follow.api';
+import { followApi, userApi } from '@/api/modules';
 
 const SuggestedUsers = () => {
     const router = useRouter();

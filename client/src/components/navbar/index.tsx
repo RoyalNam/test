@@ -14,13 +14,14 @@ import {
     BsPlusCircle,
     BsSearch,
 } from 'react-icons/bs';
+
 import Notifications from './Notifications';
 import Search from './Search';
 import CreatePost from '../post/CreatePost';
 import { useAuthContextProvider } from '@/context/authUserContext';
 import { useSocketContext } from '@/context/socketContext';
 import { Notification } from '@/types';
-import userApi, { userEndpoint } from '@/api/modules/user.api';
+import { userApi } from '@/api/modules';
 
 interface NavProps {
     tit: string;
@@ -196,17 +197,10 @@ const Navbar = () => {
                 }}
                 className="hidden md:block mb-6 py-2 cursor-pointer"
             >
-                <h2
-                    className={`hidden lg:block font-mono py-2 italic text-2xl px-3 ${
-                        isShowSearch || isShowNotifications ? '!hidden' : ''
-                    }`}
-                >
-                    Social
-                </h2>
                 <img
-                    src="/logo.jpg"
+                    src="/logo.png"
                     alt=""
-                    className={`block lg:hidden w-12 h-12 rounded-full ${
+                    className={`object-cover lg:ml-3 w-full max-w-16 rounded-full ${
                         isShowSearch || isShowNotifications ? '!block' : ''
                     }`}
                 />

@@ -1,6 +1,5 @@
-import { User } from '../mongoose/schemas/user.mjs';
-import { getReceiverSocketId, io, sendSocketNotification } from '../socket/socket.mjs';
-import Notification from '../mongoose/schemas/notification.mjs';
+import { Post, Notification, User } from '../mongoose/schemas/index.js';
+import { getReceiverSocketId, io } from '../socket/socket.mjs';
 
 const handleNotFound = (res, item) => {
     return res.status(404).json({ message: `${item} not found` });
@@ -13,16 +12,21 @@ class CommentController {
             const { comment_text } = req.body;
 
             const currentUser = req.user;
-            const post = await User.findOneAndUpdate(
-                { 'posts._id': postId },
-                { $push: { 'posts.$.comments': { $each: [{ user: currentUser._id, comment_text }], $position: 0 } } },
+            if (!currentUser || !currentUser._id) {
+                return res.status(401).json({ message: 'Unauthorized' });
+            }
+
+            const post = await Post.findOneAndUpdate(
+                { _id: postId },
+                { $push: { comments: { user_id: currentUser._id, comment_text } } },
                 { new: true },
             );
+
             if (!post) return handleNotFound(res, 'Post');
 
-            const newComment = post.posts.find((post) => post._id.toString() === postId).comments[0];
+            const newComment = post.comments[0];
             const newNotification = new Notification({
-                user: post._id,
+                user_id: post.user_id,
                 action: 'commented',
                 content: `New comment by ${currentUser.name} on your post`,
                 sender: currentUser._id,
@@ -30,7 +34,7 @@ class CommentController {
 
             await newNotification.save();
 
-            const receiverSocketId = getReceiverSocketId(post._id);
+            const receiverSocketId = getReceiverSocketId(post.user_id);
             if (receiverSocketId) {
                 io.to(receiverSocketId).emit('newNotification', newNotification);
             }
@@ -52,16 +56,14 @@ class CommentController {
             const { comment_text } = req.body;
 
             const currentUser = req.user;
-            const post = await User.findOneAndUpdate(
-                { 'posts._id': postId, 'posts.comments._id': commentId },
-                { $set: { 'posts.$.comments.$[comment].comment_text': comment_text } },
-                { new: true, arrayFilters: [{ 'comment._id': commentId }] },
+            const post = await Post.findOneAndUpdate(
+                { _id: postId, 'comments._id': commentId },
+                { $set: { 'comments.$.comment_text': comment_text } },
+                { new: true },
             );
             if (!post) return handleNotFound(res, 'Post or Comment');
 
-            const updatedComment = post.posts
-                .find((post) => post._id.toString() === postId)
-                .comments.find((comment) => comment._id.toString() === commentId);
+            const updatedComment = post.comments.find((comment) => comment._id.toString() === commentId);
             res.status(200).json({ message: 'Comment updated successfully', comment: updatedComment });
         } catch (error) {
             console.error('Error updating comment:', error);
@@ -73,9 +75,9 @@ class CommentController {
         try {
             const { postId, commentId } = req.params;
 
-            const post = await User.findOneAndUpdate(
-                { 'posts._id': postId },
-                { $pull: { 'posts.$.comments': { _id: commentId } } },
+            const post = await Post.findOneAndUpdate(
+                { _id: postId },
+                { $pull: { comments: { _id: commentId } } },
                 { new: true },
             );
             if (!post) return handleNotFound(res, 'Post or Comment');
@@ -93,22 +95,15 @@ class CommentController {
             const { parentId, comment_text } = req.body;
 
             const currentUser = req.user;
-            const user = await User.findOne({ 'posts._id': postId, 'posts.comments._id': commentId });
-            if (!user) return handleNotFound(res, 'User not found');
+            const post = await Post.findOne({ _id: postId, 'comments._id': commentId });
+            if (!post) return handleNotFound(res, 'Post or Comment');
 
-            let targetPost, targetComment;
-            for (const post of user.posts) {
-                const comment = post.comments.find((comment) => comment._id.toString() === commentId);
-                if (comment) {
-                    targetPost = post;
-                    targetComment = comment;
-                    break;
-                }
-            }
-            if (!targetPost || !targetComment) return handleNotFound(res, 'Post or Comment');
+            const targetComment = post.comments.find((comment) => comment._id.toString() === commentId);
+            if (!targetComment) return handleNotFound(res, 'Comment');
 
             let newReply, newNotification;
 
+            // Handle parent reply
             if (parentId) {
                 const findParentReply = (replies) => {
                     for (const reply of replies) {
@@ -120,39 +115,38 @@ class CommentController {
                     }
                     return null;
                 };
-
                 const parentReplyToUpdate = findParentReply(targetComment.replies);
                 if (!parentReplyToUpdate) return handleNotFound(res, 'Parent reply');
 
-                parentReplyToUpdate.replies.push({ user: currentUser._id, comment_text });
+                parentReplyToUpdate.replies.push({ user_id: currentUser._id, comment_text });
                 newReply = parentReplyToUpdate.replies.slice(-1)[0];
 
                 newNotification = new Notification({
-                    user: parentReplyToUpdate.user._id,
+                    user_id: parentReplyToUpdate.user_id._id,
                     action: 'replied',
                     content: `New reply by ${currentUser.name}`,
                     sender: currentUser._id,
                 });
             } else {
-                targetComment.replies.push({ user: currentUser._id, comment_text });
+                targetComment.replies.push({ user_id: currentUser._id, comment_text });
                 newReply = targetComment.replies.slice(-1)[0];
 
-                const receiverUser = await User.findById(targetComment.user._id);
                 newNotification = new Notification({
-                    user: receiverUser._id,
+                    user_id: targetComment.user_id._id,
                     action: 'replied',
                     content: `New reply by ${currentUser.name}`,
                     sender: currentUser._id,
                 });
             }
-            await newNotification.save();
-            await user.save();
 
-            const receiverSocketId = getReceiverSocketId(newNotification.user);
+            await newNotification.save();
+            await post.save();
+
+            const receiverSocketId = getReceiverSocketId(newNotification.user_id);
             if (receiverSocketId) {
                 io.to(receiverSocketId).emit('newNotification', newNotification);
             } else {
-                console.warn(`Socket ID not found for user ID: ${newNotification.user}`);
+                console.warn(`Socket ID not found for user ID: ${newNotification.user_id}`);
             }
 
             res.status(201).json({

@@ -1,9 +1,10 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { timeAgoFromPast } from '@/utils';
 import { useRouter } from 'next/navigation';
+
+import { timeAgoFromPast } from '@/utils';
 import { MinimalUser, Notification } from '@/types';
-import userApi from '@/api/modules/user.api';
+import { userApi } from '@/api/modules';
 
 const Notifications = ({ notifications }: { notifications: Notification[] }) => {
     const router = useRouter();
@@ -28,7 +29,7 @@ const Notifications = ({ notifications }: { notifications: Notification[] }) => 
     useEffect(() => {
         const today = new Date();
         const todayNotifications = notifications.filter((notification) => {
-            const notificationDate = new Date(notification.created_at);
+            const notificationDate = new Date(notification.createdAt);
             return (
                 notificationDate.getDate() === today.getDate() &&
                 notificationDate.getMonth() === today.getMonth() &&
@@ -70,7 +71,7 @@ const Notifications = ({ notifications }: { notifications: Notification[] }) => 
                 <div>
                     <span className="line-clamp-3">{notification.content}</span>
                     <span className="text-blue-400 font-medium text-xs">
-                        {timeAgoFromPast(new Date(notification.created_at))}
+                        {timeAgoFromPast(new Date(notification.createdAt))}
                     </span>
                 </div>
             </div>

@@ -2,11 +2,11 @@
 import React, { useRef, useState } from 'react';
 import { BsArrowLeft, BsImages, BsX } from 'react-icons/bs';
 import { Oval } from 'react-loader-spinner';
+
 import { useAuthContextProvider } from '@/context/authUserContext';
 import Modal from '../Modal';
 import { applyFilters, resizeImage } from '@/utils';
-import otherApi from '@/api/modules/other.api';
-import postApi from '@/api/modules/post.api';
+import { otherApi, postApi } from '@/api/modules';
 
 interface RangeProps {
     tit: string;
@@ -81,7 +81,6 @@ const CreatePost = ({ show, onClose }: { show: boolean; onClose: () => void }) =
                 const response = await fetch(filteredImageUrl);
                 const blob = await response.blob();
                 formData.append('filename', blob);
-
                 const uploadResponse = await otherApi.uploadImage({ formData: formData });
 
                 const post = await postApi.createPost({
@@ -89,10 +88,10 @@ const CreatePost = ({ show, onClose }: { show: boolean; onClose: () => void }) =
                     caption: captionRef.current?.value,
                 });
                 if (post && authUser) {
-                    console.log('post', post);
                     const updatedUser = { ...authUser };
-                    updatedUser.posts.unshift(post.post);
+                    updatedUser.posts = [post._id, ...authUser.posts];
                     updateAuthUser(updatedUser);
+
                     handleResetDefaults();
                 }
             } catch (error) {

@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
-import { User } from '../mongoose/schemas/user.mjs';
+import { User } from '../mongoose/schemas/index.js';
 dotenv.config();
 
 export const authenticateToken = async (req, res, next) => {

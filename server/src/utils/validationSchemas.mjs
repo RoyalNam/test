@@ -19,11 +19,6 @@ export const createUserValidationSchema = {
     bio: {
         optional: true,
     },
-    join_date: {
-        optional: true,
-        isISO8601: true,
-        toDate: true,
-    },
     following: {
         optional: true,
         isArray: true,
@@ -32,34 +27,15 @@ export const createUserValidationSchema = {
         optional: true,
         isArray: true,
     },
-    'posts.*.image_url': {
-        optional: true,
-        isURL: true,
-        errorMessage: 'Invalid image URL',
-    },
-    'posts.*.caption': {
-        optional: true,
-    },
-    'posts.*.post_date': {
-        optional: true,
-        isISO8601: true,
-        toDate: true,
-    },
-    'posts.*.comments.*.comment_text': {
-        optional: true,
-    },
-    'posts.*.comments.**.replies.*.comment_text': {
-        optional: true,
-    },
-    'save_post.*.user_id': {
+    followers: {
         optional: true,
         isArray: true,
     },
-    'save_post.*.post_id': {
+    posts: {
         optional: true,
         isArray: true,
     },
-    tags: {
+    save_post: {
         optional: true,
         isArray: true,
     },

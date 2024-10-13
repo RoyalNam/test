@@ -51,7 +51,6 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.get('/', (request, response) => {
     console.log(request.session);
-    console.log(request.session.id);
     request.session.visited = true;
 
     response.status(201).send({ msg: 'Hello World' });
@@ -61,6 +60,9 @@ app.use(router);
 
 const port = process.env.PORT || 5000;
 
+const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+const host = 'localhost';
+
 server.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+    console.log(`Server running on ${protocol}://${host}:${port}`);
 });

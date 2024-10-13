@@ -1,5 +1,6 @@
 import React from 'react';
 import { BsChatDotsFill, BsHeartFill } from 'react-icons/bs';
+
 import { Post } from '@/types';
 import { countComments, formatNumber } from '@/utils';
 

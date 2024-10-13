@@ -1,14 +1,15 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { PostProps } from '@/types';
+import { Oval } from 'react-loader-spinner';
+
+import { Post } from '@/types';
 import PostItem from '@/components/post/PostItem';
 import SuggestedUsers from '@/components/SuggestedUsers';
-import { Oval } from 'react-loader-spinner';
-import postApi from '@/api/modules/post.api';
 import MainLayout from './MainLayout';
+import { postApi } from '@/api/modules';
 
 const Home = () => {
-    const [posts, setPosts] = useState<PostProps[]>([]);
+    const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
     const [fetchingPosts, setFetchingPosts] = useState(false);
 
@@ -22,27 +23,21 @@ const Home = () => {
             if (fetchingPosts) return;
 
             setFetchingPosts(true);
-            const newPosts = await postApi.getPosts();
-            console.log('new post', newPosts.posts);
-
-            if (newPosts && newPosts.posts.length > 0) {
-                setPosts((prevPosts) => [...prevPosts, ...newPosts.posts]);
+            const previousPostIds = posts.map((post) => post._id);
+            const newPosts = await postApi.getPosts(previousPostIds);
+            if (newPosts && newPosts.length > 0) {
+                setPosts((prevPosts) => [...prevPosts, ...newPosts]);
             }
         } catch (err) {
-            throw err;
+            console.error(err);
         } finally {
             setFetchingPosts(false);
             setLoading(true);
         }
     };
 
-    const updatePost = async (post: PostProps) => {
-        setPosts((prev) =>
-            prev.map((item) => {
-                if (item.post._id === post.post._id) return post;
-                else return item;
-            }),
-        );
+    const updatePost = async (post: Post) => {
+        setPosts((prev) => prev.map((item) => (item._id === post._id ? post : item)));
     };
 
     return (
@@ -52,13 +47,7 @@ const Home = () => {
                     {posts.length > 0 ? (
                         posts.map((item, idx) => (
                             <div key={idx}>
-                                <PostItem
-                                    postData={{
-                                        author: item.author,
-                                        post: item.post,
-                                    }}
-                                    updatePost={updatePost}
-                                />
+                                <PostItem postData={item} updatePost={updatePost} />
                             </div>
                         ))
                     ) : (

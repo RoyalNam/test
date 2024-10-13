@@ -2,9 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { BsSearch, BsXLg } from 'react-icons/bs';
+
 import { User } from '@/types';
 import { formatNumber } from '@/utils';
-import userApi from '@/api/modules/user.api';
+import { userApi } from '@/api/modules';
 
 const Search: React.FC = () => {
     const router = useRouter();

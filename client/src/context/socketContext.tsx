@@ -1,6 +1,7 @@
 'use client';
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import io, { Socket } from 'socket.io-client';
+
 import { useAuthContextProvider } from './authUserContext';
 import { baseURL } from '@/api/client/private.client';
 

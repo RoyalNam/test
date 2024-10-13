@@ -1,8 +1,9 @@
 'use client';
 import React, { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
+
 import InputCus, { InputProps } from '@/components/InputCus';
-import userApi from '@/api/modules/user.api';
+import { userApi } from '@/api/modules';
 
 const Register = () => {
     const router = useRouter();

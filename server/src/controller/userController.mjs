@@ -1,6 +1,5 @@
 import { matchedData, validationResult } from 'express-validator';
-import { User } from '../mongoose/schemas/user.mjs';
-import Notification from '../mongoose/schemas/notification.mjs';
+import { User, Notification } from '../mongoose/schemas/index.js';
 import { hashPassword } from '../utils/helpers.mjs';
 
 class UserController {
@@ -85,9 +84,7 @@ class UserController {
         if (!result.isEmpty()) return response.status(400).send(result.array());
 
         const data = matchedData(request);
-        console.log(data);
         data.password = hashPassword(data.password);
-        console.log(data);
 
         const newUser = new User(data);
         try {
@@ -125,7 +122,7 @@ class UserController {
     static async getNotifications(request, response) {
         try {
             const { id: userId } = request.params;
-            const notifications = await Notification.find({ user: userId }).sort({ created_at: -1 });
+            const notifications = await Notification.find({ user_id: userId }).sort({ createdAt: -1 });
 
             response.status(200).json({ notifications });
         } catch (error) {

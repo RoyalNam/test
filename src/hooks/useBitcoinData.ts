@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { GetCandles } from "@/services/api-binance";
 import { Timeframe } from "@/types";
 
